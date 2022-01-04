@@ -1,10 +1,10 @@
 # BRUS
 
-    bbbbbb   rrrrrr   u     u   sssss
+    bbbbb    rrrrrr   u     u   sssss
     b    b   r    r   u     u   s
-    bbbbbb   rrrrrr   u     u   sssss
+    bbbbb    rrrrrr   u     u   sssss
     b    b   r r      u     u       s
-    bbbbbb   r  r     uuuuuuu   sssss
+    bbbbb    r  r     uuuuuuu   sssss
 
 
 BRUS _(Noise in Swedish)_ parses your web server (e.g. nginx) log files and checks with GreyNoise how much noise your website is exposed to. The result can then be sent to your email address or preferred webhook service, such as Slack, Telegram and so on.
