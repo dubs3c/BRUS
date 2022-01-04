@@ -6,53 +6,74 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/user"
+	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"gopkg.in/ini.v1"
 )
 
-func ParseFile(filename string) (map[string]string, error) {
-	file, err := os.Open(filename)
+func timespecToTime(ts syscall.Timespec) time.Time {
+	return time.Unix(int64(ts.Sec), int64(ts.Nsec))
+}
+
+// ParseLogFiles Parses log files within a given directory that are not older than days
+func ParseLogFiles(directory string, days int) (map[string]string, error) {
+
+	files, err := ioutil.ReadDir(directory)
 
 	if err != nil {
-		return map[string]string{}, err
-	}
-
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-
-	if err := scanner.Err(); err != nil {
-		return map[string]string{}, err
+		log.Fatal(err)
 	}
 
 	var (
-		ips map[string]string = map[string]string{}
-		ip  []byte            = []byte{}
+		ips    map[string]string = map[string]string{}
+		ip     []byte            = []byte{}
+		before time.Time         = time.Now().AddDate(0, 0, -days)
 	)
 
-	for scanner.Scan() {
-		ip = []byte{}
-		for _, b := range scanner.Bytes() {
-			if b == 32 {
-				break
+	// Goroutines can be used to read multiple files, if needed
+	for _, file := range files {
+		t := timespecToTime(file.Sys().(*syscall.Stat_t).Atimespec)
+		if t.After(before) {
+			filePath := path.Join(directory, file.Name())
+			logFile, err := os.Open(filePath)
+
+			if err != nil {
+				log.Println(err)
+				continue
 			}
-			ip = append(ip, b)
+
+			scanner := bufio.NewScanner(logFile)
+
+			if err := scanner.Err(); err != nil {
+				return map[string]string{}, err
+			}
+
+			for scanner.Scan() {
+				ip = []byte{}
+				for _, b := range scanner.Bytes() {
+					if b == 32 {
+						break
+					}
+					ip = append(ip, b)
+				}
+				ips[string(ip)] = string(ip)
+			}
 		}
-		ips[string(ip)] = string(ip)
 	}
 
 	return ips, nil
-
 }
 
-func PreparePayload(message string, msgField string, additionalData string) ([]byte, error) {
+func preparePayload(message string, msgField string, additionalData string) ([]byte, error) {
 
 	jayson := map[string]interface{}{
 		msgField: message,
@@ -78,14 +99,34 @@ func PreparePayload(message string, msgField string, additionalData string) ([]b
 }
 
 func main() {
-	email := flag.Bool("smtp", false, "Send result using smtp")
-	webhook := flag.Bool("webhook", false, "Send result using a webhook")
+
+	var (
+		email     bool
+		webhook   bool
+		directory string
+		days      int
+	)
+
+	flag.BoolVar(&email, "smtp", false, "Send result using smtp")
+	flag.BoolVar(&webhook, "webhook", false, "Send result using a webhook")
+	flag.IntVar(&days, "days", 30, "Parse log files within the last X days")
+	flag.StringVar(&directory, "directory", "", "Required. Directory that contains log files to be parsed. Must be absolute path")
 
 	flag.Parse()
 
 	if len(os.Args) <= 1 {
 		flag.Usage()
 		os.Exit(0)
+	}
+
+	if directory == "" {
+		log.Fatal("Directory must be present")
+		os.Exit(1)
+	}
+
+	if !path.IsAbs(directory) {
+		log.Fatal("Directory must be absolute path")
+		os.Exit(1)
 	}
 
 	var cfg *ini.File
@@ -119,7 +160,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
-	result, err := gn.CheckNoise(ctx, "input.txt") // ska vara en katalog, inte en fil
+	result, err := gn.CheckNoise(ctx, directory, days)
 
 	if err != nil {
 		log.Fatal("GreyNoise failed: ", err)
@@ -127,7 +168,7 @@ func main() {
 
 	message := fmt.Sprintf("*Results from BRUS the last 30 days*\nAmount of Noisy IPs: %d\nNon Noisy IPs: %d\nTop 3 Classification: %s\nTop 3 Names: %s\n", result.AmountOfNoise, result.AmountOfNonNoise, result.TopClassification, result.TopName)
 
-	if *webhook {
+	if webhook {
 		webhook := cfg.Section("Webhook").Key("webhook").String()
 		textField := cfg.Section("Webhook").Key("textField").MustString("text")
 		additionalData := cfg.Section("Webhook").Key("data").String()
@@ -142,7 +183,7 @@ func main() {
 			message = newMessage
 		}
 
-		json, err := PreparePayload(message, textField, additionalData)
+		json, err := preparePayload(message, textField, additionalData)
 
 		if err != nil {
 			log.Fatal("Could not prepare payload for webhook")
@@ -154,10 +195,10 @@ func main() {
 			log.Fatal("Could not send data to webhook", err)
 		}
 
-		fmt.Println("Data sent to webhook")
+		fmt.Println("🚀 Data sent to webhook")
 	}
 
-	if *email {
+	if email {
 		emailUsername := cfg.Section("Email").Key("username").String()
 		emailPassword := cfg.Section("Email").Key("password").String()
 		emailRecipient := cfg.Section("Email").Key("recipient").String()
@@ -173,7 +214,7 @@ func main() {
 			log.Fatal("Could not email results", err)
 		}
 
-		fmt.Println("Data sent via email")
+		fmt.Println("📧 Data sent via email")
 	}
 
 }

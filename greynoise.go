@@ -93,8 +93,8 @@ func (gn *GNoise) gNoiseIpLookUp(ctx context.Context, ip string) (*GNoiseRespons
 	return data, err
 }
 
-func (gn *GNoise) CheckNoise(ctx context.Context, filename string) (*Result, error) {
-	ips, err := ParseFile("input.txt")
+func (gn *GNoise) CheckNoise(ctx context.Context, directory string, days int) (*Result, error) {
+	ips, err := ParseLogFiles(directory, days)
 
 	if err != nil {
 		log.Fatal(err)
