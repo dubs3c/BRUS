@@ -15,6 +15,28 @@ _Still in active development, use at your own risk_
 
 ## Usage
 
+Create the following config file in `~/.config/brus.ini`
+```
+[Email]
+username=
+password=
+recipient=
+server=smtp.gmail.com
+port=587
+subject="BRUS summary"
+
+[Webhook]
+webhook=https://api.telegram.org/botxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx/sendMessage
+textField=text
+data={"chat_id": "xxxxxx"}
+
+[GreyNoise]
+key=
+```
+
+The `textField` and `data` fields are used for telegram because they require some extra fields. If your webhook request uses `message=your+data` in its POST payload, then you only need the webhook field. If it uses another name, such as `text=your+data`, you can change it in `textField`. Do you need to send more data, simply add it as a json formatted string in the `data` field.
+
+Now run the program :)
 ```
 ➜  BRUS git:(master) ✗ ./brus -webhook -directory "/var/log/nginx/"
 🚀 Data sent to webhook

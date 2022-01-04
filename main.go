@@ -84,7 +84,7 @@ func preparePayload(message string, msgField string, additionalData string) ([]b
 		data := []byte(`` + additionalData + ``)
 		var f interface{}
 		if err := json.Unmarshal(data, &f); err != nil {
-			return nil, err
+			return []byte{}, err
 		}
 		m := f.(map[string]interface{})
 		for k, v := range m {
