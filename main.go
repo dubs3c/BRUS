@@ -52,11 +52,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !webhook && !email {
-		log.Fatal("You need to specify either -webhook or -email")
-		os.Exit(1)
-	}
-
 	var cfg *ini.File
 	User, err := user.Current()
 
