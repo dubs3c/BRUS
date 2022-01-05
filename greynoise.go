@@ -54,6 +54,10 @@ func getTopValues(data map[string]int) []string {
 		top = append(top, k)
 	}
 
+	if len(top) == 0 {
+		return []string{}
+	}
+
 	return top[:2]
 }
 
@@ -152,6 +156,10 @@ func (gn *GNoise) CheckNoise(ctx context.Context, directory string, days int) (*
 
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if len(ips) == 0 {
+		return &Result{}, errors.New("no IPs parsed")
 	}
 
 	wg := &sync.WaitGroup{}
