@@ -1,4 +1,4 @@
 package main
 
-// VERSION Emissary version
-const VERSION = "0.5"
+// VERSION BRUS version
+const VERSION = "0.5.1"
