@@ -40,7 +40,14 @@ Now run the program :)
 ```
 ➜  BRUS git:(master) ✗ ./brus -webhook -directory "/var/log/nginx/"
 🚀 Data sent to webhook
+
+# Results from BRUS the last 30 days
+Amount of Noisy IPs: 15
+Non Noisy IPs: 1
+Top 3 Classification: unknown, malicious
+Top 3 Names: unknown, Net Systems Research
 ```
+
 
 ## Contributing
 1. Fork it!

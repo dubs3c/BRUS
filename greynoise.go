@@ -1,15 +1,21 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"path"
 	"sort"
 	"sync"
+	"syscall"
+	"time"
 )
 
 type GNoiseResponse struct {
@@ -45,11 +51,64 @@ func getTopValues(data map[string]int) []string {
 
 	top := []string{}
 
-	for k, _ := range data {
+	for k := range data {
 		top = append(top, k)
 	}
 
 	return top[:2]
+}
+
+func timespecToTime(ts syscall.Timespec) time.Time {
+	return time.Unix(int64(ts.Sec), int64(ts.Nsec))
+}
+
+// ParseLogFiles Parses log files within a given directory that are not older than days
+func ParseLogFiles(directory string, days int) (map[string]string, error) {
+
+	files, err := ioutil.ReadDir(directory)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var (
+		ips    map[string]string = map[string]string{}
+		ip     []byte            = []byte{}
+		before time.Time         = time.Now().AddDate(0, 0, -days)
+	)
+
+	// Goroutines can be used to read multiple files, if needed
+	for _, file := range files {
+		t := timespecToTime(file.Sys().(*syscall.Stat_t).Atimespec)
+		if t.After(before) {
+			filePath := path.Join(directory, file.Name())
+			logFile, err := os.Open(filePath)
+
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			scanner := bufio.NewScanner(logFile)
+
+			if err := scanner.Err(); err != nil {
+				return map[string]string{}, err
+			}
+
+			for scanner.Scan() {
+				ip = []byte{}
+				for _, b := range scanner.Bytes() {
+					if b == 32 {
+						break
+					}
+					ip = append(ip, b)
+				}
+				ips[string(ip)] = string(ip)
+			}
+		}
+	}
+
+	return ips, nil
 }
 
 func (gn *GNoise) gNoiseIpLookUp(ctx context.Context, ip string) (*GNoiseResponse, error) {

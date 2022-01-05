@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/smtp"
+	"strings"
 	"time"
 )
 
@@ -19,6 +21,31 @@ type EmailConfig struct {
 	recipient string
 	subject   string
 	message   string
+}
+
+func PreparePayload(message string, msgField string, additionalData string) ([]byte, error) {
+
+	jayson := map[string]interface{}{
+		msgField: message,
+	}
+	// Required for valid json
+	additionalData = strings.ReplaceAll(additionalData, "'", "\"")
+	if additionalData != "" {
+		data := []byte(`` + additionalData + ``)
+		var f interface{}
+		if err := json.Unmarshal(data, &f); err != nil {
+			return []byte{}, err
+		}
+		m := f.(map[string]interface{})
+		for k, v := range m {
+			jayson[k] = v
+		}
+	}
+	js, err := json.Marshal(jayson)
+	if err != nil {
+		return []byte{}, err
+	}
+	return js, nil
 }
 
 // Email Send messages via email
