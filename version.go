@@ -1,4 +1,4 @@
 package main
 
 // VERSION BRUS version
-const VERSION = "0.5.1"
+const VERSION = "0.5.2"
