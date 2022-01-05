@@ -14,7 +14,6 @@ import (
 	"path"
 	"sort"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -58,10 +57,6 @@ func getTopValues(data map[string]int) []string {
 	return top[:2]
 }
 
-func timespecToTime(ts syscall.Timespec) time.Time {
-	return time.Unix(int64(ts.Sec), int64(ts.Nsec))
-}
-
 // ParseLogFiles Parses log files within a given directory that are not older than days
 func ParseLogFiles(directory string, days int) (map[string]string, error) {
 
@@ -79,7 +74,7 @@ func ParseLogFiles(directory string, days int) (map[string]string, error) {
 
 	// Goroutines can be used to read multiple files, if needed
 	for _, file := range files {
-		t := timespecToTime(file.Sys().(*syscall.Stat_t).Atimespec)
+		t := GetCreationDate(file)
 		if t.After(before) {
 			filePath := path.Join(directory, file.Name())
 			logFile, err := os.Open(filePath)
