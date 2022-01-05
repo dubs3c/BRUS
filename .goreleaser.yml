@@ -1,6 +1,6 @@
 builds:
   - main: .
-    binary: emissary
+    binary: brus
     env:
       - CGO_ENABLED=0
     goos:
@@ -21,6 +21,8 @@ changelog:
       - docs
       - Merge pull request
       - Merge branch
+      - Releasing v
+      - lulz
 
 archives:
 - format: tar.gz
