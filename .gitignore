@@ -2,3 +2,5 @@
 main
 *.ini
 *.txt
+
+!test/input.txt
