@@ -4,4 +4,5 @@ main
 *.txt
 dist/
 
-!test/input.txt
+!testdata/input.txt
+dist/

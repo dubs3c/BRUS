@@ -17,6 +17,11 @@ import (
 	"time"
 )
 
+type GreyNoise interface {
+	IPLookup(ctx context.Context, ip string) (*GNoiseResponse, error)
+	ParseLogFiles(directory string, days int) (map[string]string, error)
+}
+
 type GNoiseResponse struct {
 	IP             string
 	Noise          bool
@@ -58,11 +63,15 @@ func getTopValues(data map[string]int) []string {
 		return []string{}
 	}
 
+	if len(top) <= 3 {
+		return top[:]
+	}
+
 	return top[:2]
 }
 
 // ParseLogFiles Parses log files within a given directory that are not older than days
-func ParseLogFiles(directory string, days int) (map[string]string, error) {
+func (gn *GNoise) ParseLogFiles(directory string, days int) (map[string]string, error) {
 
 	files, err := ioutil.ReadDir(directory)
 
@@ -110,7 +119,7 @@ func ParseLogFiles(directory string, days int) (map[string]string, error) {
 	return ips, nil
 }
 
-func (gn *GNoise) gNoiseIpLookUp(ctx context.Context, ip string) (*GNoiseResponse, error) {
+func (gn *GNoise) IPLookup(ctx context.Context, ip string) (*GNoiseResponse, error) {
 	apiPath := fmt.Sprintf("https://api.greynoise.io/v3/community/%s", ip)
 	data := &GNoiseResponse{IP: ip}
 	client := &http.Client{Transport: gn.Http}
@@ -151,8 +160,8 @@ func (gn *GNoise) gNoiseIpLookUp(ctx context.Context, ip string) (*GNoiseRespons
 	return data, err
 }
 
-func (gn *GNoise) CheckNoise(ctx context.Context, directory string, days int) (*Result, error) {
-	ips, err := ParseLogFiles(directory, days)
+func CheckNoise(ctx context.Context, gn GreyNoise, directory string, days int) (*Result, error) {
+	ips, err := gn.ParseLogFiles(directory, days)
 
 	if err != nil {
 		log.Fatal(err)
@@ -180,7 +189,7 @@ func (gn *GNoise) CheckNoise(ctx context.Context, directory string, days int) (*
 		go func() {
 			defer wg.Done()
 			for ip := range ipChan {
-				data, _ := gn.gNoiseIpLookUp(ctx, ip)
+				data, _ := gn.IPLookup(ctx, ip)
 				output <- data
 			}
 			done <- true

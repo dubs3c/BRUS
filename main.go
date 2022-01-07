@@ -89,7 +89,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
-	result, err := gn.CheckNoise(ctx, directory, days)
+	result, err := CheckNoise(ctx, gn, directory, days)
 
 	if err != nil {
 		log.Fatal("GreyNoise failed: ", err)
@@ -127,7 +127,7 @@ func main() {
 		err = SendRequest(webhook, json)
 
 		if err != nil {
-			log.Fatal("Could not send data to webhook", err)
+			log.Println("Could not send data to webhook", err)
 		}
 
 		if !quite {
@@ -148,7 +148,7 @@ func main() {
 			message: message}
 
 		if SendEmail(emailConfig) != nil {
-			log.Fatal("Could not email results", err)
+			log.Println("Could not email results", err)
 		}
 		if !quite {
 			fmt.Println("📧 Data sent via email")
